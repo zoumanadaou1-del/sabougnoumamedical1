@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Clinique — Gestion des soins</title>
+<style>
+:root{
+  --bg:#EDF2F1; --surface:#fff; --surface-soft:#F5F8F7; --primary:#0D5C63; --primary-dark:#083E43;
+  --primary-soft:#DCEBEA; --accent:#E8A33D; --accent-soft:#FBEBD3; --danger:#C0392B; --danger-soft:#F8DEDA;
+  --success:#2F7D5A; --success-soft:#DCEEE4; --text:#182726; --muted:#5D7069; --border:#DCE5E2;
+  --monitor:#0A3A3D; --monitor-text:#6FE3C7;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;}
+.header{position:fixed;top:0;left:0;right:0;height:52px;background:var(--primary-dark);color:#fff;display:flex;align-items:center;gap:12px;padding:0 14px;z-index:40;}
+.hamburger{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:4px 8px;}
+.header-title{font-weight:700;font-size:15px;}
+.sidebar{position:fixed;top:0;left:0;bottom:0;width:240px;background:var(--primary-dark);color:#fff;padding:60px 12px 20px;transform:translateX(-100%);transition:transform .25s ease;z-index:50;overflow-y:auto;}
+.sidebar.open{transform:translateX(0);}
+.sidebar-overlay{position:fixed;inset:0;background:rgba(10,25,24,.4);opacity:0;pointer-events:none;transition:opacity .2s;z-index:45;}
+.sidebar-overlay.open{opacity:1;pointer-events:auto;}
+.brand{padding:0 8px 18px;}
+.brand span{display:block;font-size:16px;font-weight:800;color:#fff;}
+.nav-btn{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;background:transparent;border:none;color:#B9D3D0;font-size:13.5px;font-weight:600;border-radius:9px;cursor:pointer;text-align:left;margin-bottom:2px;}
+.nav-btn.active{background:rgba(255,255,255,.14);color:#fff;}
+.content{padding:70px 14px 40px;max-width:960px;margin:0 auto;}
+.page-title{font-size:21px;font-weight:800;color:var(--primary-dark);margin:0 0 2px;}
+.page-sub{color:var(--muted);font-size:13px;margin-bottom:16px;}
+.view-header{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+.btn{border-radius:8px;font-size:13.5px;font-weight:700;padding:9px 14px;cursor:pointer;border:1px solid transparent;display:inline-flex;align-items:center;gap:6px;}
+.btn-primary{background:var(--primary);color:#fff;border-color:var(--primary);}
+.btn-ghost{background:transparent;color:var(--primary);border-color:var(--border);}
+.btn-subtle{background:var(--surface-soft);color:var(--text);border-color:var(--border);}
+.btn-sm{padding:6px 10px;font-size:12.5px;}
+.btn-tiny{padding:4px 8px;font-size:11.5px;border-radius:6px;border:1px solid var(--border);background:#fff;cursor:pointer;}
+.btn-icon-danger{background:none;border:none;color:var(--danger);cursor:pointer;font-size:15px;padding:2px 6px;}
+.search-row{margin-bottom:14px;max-width:420px;}
+.search-row input, .filter-row input, .form-grid input, .form-grid select, .form-grid textarea, .pay-box input,
+label.block input, label.block textarea, .presc-row input, .sale-row input {
+  width:100%;border:1px solid var(--border);border-radius:7px;padding:9px 10px;font-size:14px;color:var(--text);background:#fff;outline:none;font-family:inherit;
+}
+.filter-row{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px;}
+.card-flat{padding:0;}
+.card-flat .section-head-static{padding:16px 16px 0;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px;}
+@media (max-width:700px){ .grid-2, .grid-3 { grid-template-columns:1fr; } }
+.monitor-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;}
+.monitor-card{background:linear-gradient(160deg,var(--monitor),#06282A);border-radius:14px;padding:14px 16px;color:var(--monitor-text);min-width:135px;flex:1;}
+.monitor-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1px;opacity:.75;text-transform:uppercase;}
+.monitor-value{font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:700;margin-top:4px;}
+.monitor-value span{font-size:12px;opacity:.7;}
+.section-head, .section-head-static{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:14px;color:var(--primary-dark);margin-bottom:12px;}
+.section-head a{color:var(--primary);font-size:12.5px;font-weight:600;cursor:pointer;text-decoration:none;}
+.row-between{display:flex;justify-content:space-between;align-items:center;font-size:13.5px;padding:6px 0;}
+.pending-row{background:var(--surface-soft);border-radius:8px;padding:10px;margin-bottom:8px;}
+.bold{font-weight:700;font-size:13.5px;}
+.muted{color:var(--muted);}
+.small{font-size:12px;}
+.mono{font-family:'IBM Plex Mono',monospace;}
+.danger-text{color:var(--danger);font-weight:700;}
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;}
+.badge-muted{background:var(--surface-soft);color:var(--muted);}
+.badge-success{background:var(--success-soft);color:var(--success);}
+.badge-danger{background:var(--danger-soft);color:var(--danger);}
+.badge-accent{background:var(--accent-soft);color:#8A5A0F;}
+.empty{text-align:center;padding:30px 10px;color:var(--muted);font-size:13px;}
+.table{width:100%;border-collapse:collapse;}
+.table th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--border);}
+.table td{padding:10px;font-size:13px;border-bottom:1px solid var(--border);}
+.table tbody tr[onclick]{cursor:pointer;}
+.chevron{color:var(--muted);text-align:right;}
+.row-actions{display:flex;gap:6px;justify-content:flex-end;}
+.link-back{background:none;border:none;color:var(--primary);font-weight:700;font-size:13px;cursor:pointer;margin-bottom:12px;padding:0;}
+.info-row{margin-bottom:8px;}
+.info-label{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+.info-value{font-size:13.5px;font-weight:600;}
+.modal-overlay{position:fixed;inset:0;background:rgba(10,25,24,.45);display:flex;align-items:flex-start;justify-content:center;padding:5vh 14px;z-index:100;overflow-y:auto;}
+.modal-box{background:#fff;border-radius:16px;width:100%;max-width:640px;box-shadow:0 20px 60px rgba(10,40,38,.35);}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid var(--border);}
+.modal-header h3{margin:0;font-size:15.5px;font-weight:800;color:var(--primary-dark);}
+.modal-header button{background:none;border:none;font-size:16px;cursor:pointer;color:var(--muted);}
+.modal-body{padding:18px;display:flex;flex-direction:column;gap:12px;}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;padding:14px 18px;border-top:1px solid var(--border);}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media (max-width:520px){ .form-grid { grid-template-columns:1fr; } }
+.form-grid label, label.block{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted);font-weight:700;}
+.span-2{grid-column:1/-1;}
+.presc-block{border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:12px 0;}
+.presc-row{display:grid;grid-template-columns:2fr 1fr 1.3fr 0.8fr 0.6fr auto;gap:6px;margin-bottom:6px;align-items:center;}
+.sale-row{grid-template-columns:2fr 0.7fr 0.9fr 1fr auto;}
+@media (max-width:600px){ .presc-row, .sale-row{grid-template-columns:1fr 1fr;} }
+.pick-list{display:flex;flex-direction:column;gap:6px;margin-top:8px;max-height:260px;overflow-y:auto;}
+.pick-item{text-align:left;background:var(--surface-soft);border:1px solid var(--border);border-radius:8px;padding:8px 10px;cursor:pointer;width:100%;}
+.pick-name{font-weight:700;font-size:13.5px;}
+.pick-sub{font-size:11.5px;color:var(--muted);}
+.pay-box{background:var(--surface-soft);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px;}
+.bar-chart{display:flex;align-items:flex-end;gap:10px;height:140px;padding-top:10px;}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;}
+.bar{width:100%;background:var(--primary);border-radius:4px 4px 0 0;}
+.bar-label{font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+.hbar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.hbar-label{width:120px;font-size:12.5px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.hbar-track{flex:1;background:var(--surface-soft);border-radius:6px;height:10px;overflow:hidden;}
+.hbar-fill{height:100%;background:var(--accent);border-radius:6px;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="modalRoot"></div>
+<script>
+/* ============================================================
+   CLINIQUE — GESTION DES SOINS
+   Application autonome (HTML + CSS + JS), sans dépendance externe.
+   Données stockées localement sur l'appareil via localStorage.
+   ============================================================ */
+
+/* ---------- Utilitaires ---------- */
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+}); }
+function money(n){ return (Math.round((n||0)*100)/100).toLocaleString('fr-FR') + ' FCFA'; }
+function uid(p){ return p+'-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function nowISO(){ return new Date().toISOString(); }
+function fmtDateTime(iso){
+  if(!iso) return '—';
+  var d = new Date(iso);
+  return d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+}
+function val(id){ var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+
+/* ---------- Stockage partagé (Firebase Realtime Database) ----------
+   Toutes les données de la clinique vivent dans une base en ligne
+   gratuite (Firebase). Chaque téléphone/ordinateur qui ouvre ce
+   fichier avec la même URL de base voit et modifie les MÊMES données.
+   Une copie locale (cache) permet un affichage instantané et un
+   fonctionnement en lecture même sans connexion.
+------------------------------------------------------------------ */
+var FIREBASE_URL_KEY = 'clinique_firebase_url';
+var CACHE_KEY = 'clinique_cache_v1';
+var firebaseUrl = null;
+var DB = { patients: [], consultations: [], stock: [], ventes: [], caisse: [] };
+var lastSync = null;
+var syncOk = true;
+
+function emptyDB(){ return { patients: [], consultations: [], stock: [], ventes: [], caisse: [] }; }
+
+function loadCache(){
+  try {
+    var raw = localStorage.getItem(CACHE_KEY);
+    if(raw){ var parsed = JSON.parse(raw); DB = Object.assign(emptyDB(), parsed); }
+  } catch(e){ /* ignore */ }
+}
+function saveCache(){
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify(DB)); } catch(e){ /* ignore */ }
+}
+
+function fetchRemote(){
+  if(!firebaseUrl) return Promise.resolve();
+  return fetch(firebaseUrl.replace(/\/$/,'') + '/clinique.json')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      DB = Object.assign(emptyDB(), data || {});
+      saveCache();
+      lastSync = new Date();
+      syncOk = true;
+    })
+    .catch(function(e){ syncOk = false; });
+}
+function pushRemote(key){
+  saveCache();
+  if(!firebaseUrl) return;
+  fetch(firebaseUrl.replace(/\/$/,'') + '/clinique/' + key + '.json', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(DB[key])
+  }).then(function(){ lastSync = new Date(); syncOk = true; updateSyncBadge(); })
+    .catch(function(){ syncOk = false; updateSyncBadge(); });
+}
+function saveDB(k){ pushRemote(k); }
+
+function updateSyncBadge(){
+  var el = document.getElementById('syncBadge');
+  if(!el) return;
+  if(!firebaseUrl){ el.textContent = '⚙ Non configuré'; return; }
+  if(!syncOk){ el.textContent = '🔴 Hors ligne'; return; }
+  el.textContent = lastSync ? ('🟢 Synchro ' + lastSync.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})) : '🟢 Connecté';
+}
+
+function isUserTyping(){
+  var a = document.activeElement;
+  return a && (a.tagName==='INPUT' || a.tagName==='TEXTAREA' || a.tagName==='SELECT');
+}
+function isModalOpen(){
+  var m = document.getElementById('modalRoot');
+  return m && m.innerHTML.trim() !== '';
+}
+function manualRefresh(){
+  fetchRemote().then(function(){ render(); });
+}
+function startPolling(){
+  setInterval(function(){
+    if(!firebaseUrl) return;
+    if(isModalOpen() || isUserTyping()) return;
+    fetchRemote().then(function(){ render(); });
+  }, 20000);
+}
+
+/* ---------- Impression (ordonnances, comptes-rendus, reçus) ---------- */
+var CLINIC_INFO_KEY = 'clinique_infos';
+var clinicInfo = {
+  nom: 'CABINET MEDICAL SABOUGNOUMA-DJIDIAN',
+  tagline: 'Consultation - Soin - Maternité - Echographie - Analyse Médicales',
+  adresse: "Djidian, 100m à l'ouest de la gare de l'automobile / Rép. du Mali",
+  tel: '66 90 06 96 / 74 45 85 09',
+  email: 'zoumanadaou1@gmail.com'
+};
+
+function printCss(){
+  return "body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:24px;font-size:14px;}"
+    + ".doc-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0D5C63;padding-bottom:10px;margin-bottom:16px;}"
+    + ".doc-header h1{font-size:17px;margin:0;color:#0D5C63;}"
+    + ".clinic-tagline{font-size:11px;color:#555;margin-top:2px;}"
+    + ".clinic-contact{font-size:10.5px;color:#666;margin-top:4px;line-height:1.5;}"
+    + ".doc-meta{font-size:12px;color:#555;text-align:right;}"
+    + ".doc-title{font-size:13px;font-weight:bold;color:#0D5C63;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;}"
+    + "table{width:100%;border-collapse:collapse;margin-top:10px;}"
+    + "th,td{border:1px solid #ccc;padding:6px 8px;font-size:12.5px;text-align:left;}"
+    + ".section-title{font-weight:bold;margin-top:16px;margin-bottom:6px;font-size:13.5px;}"
+    + ".sign-row{display:flex;justify-content:space-between;margin-top:50px;font-size:12.5px;}"
+    + ".total-row td{font-weight:bold;}";
+}
+function printHeaderHtml(docTitle, metaHtml){
+  return '<div class="doc-header"><div>' +
+    '<h1>' + esc(clinicInfo.nom) + '</h1>' +
+    (clinicInfo.tagline ? '<div class="clinic-tagline">' + esc(clinicInfo.tagline) + '</div>' : '') +
+    '<div class="clinic-contact">' +
+      (clinicInfo.adresse ? esc(clinicInfo.adresse) + '<br>' : '') +
+      (clinicInfo.tel ? 'Tél : ' + esc(clinicInfo.tel) : '') +
+      (clinicInfo.email ? (clinicInfo.tel ? ' — ' : '') + esc(clinicInfo.email) : '') +
+    '</div>' +
+    '<div class="doc-title">' + esc(docTitle) + '</div>' +
+    '</div><div class="doc-meta">' + metaHtml + '</div></div>';
+}
+function openPrintWindow(title, bodyHtml){
+  var w = window.open('', '_blank');
+  if(!w){ alert("Le navigateur a bloqué la fenêtre d'impression. Autorise les pop-ups pour ce site (icône dans la barre d'adresse) puis réessaie."); return; }
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + esc(title) + '</title><style>' + printCss() + '</style></head><body>' + bodyHtml + '</body></html>');
+  w.document.close();
+  w.focus();
+  setTimeout(function(){ w.print(); }, 350);
+}
+function printConsultation(id){
+  var c = DB.consultations.filter(function(x){ return x.id===id; })[0];
+  if(!c) return;
+  var p = DB.patients.filter(function(x){ return x.id===c.patientId; })[0];
+  var age = (p && p.dateNaissance) ? Math.floor((Date.now()-new Date(p.dateNaissance))/3.15576e10) : null;
+  var html =
+    printHeaderHtml('Compte-rendu de consultation', fmtDateTime(c.date) + '<br>Dossier ' + esc(p?p.numero:'')) +
+    '<div><b>Patient :</b> ' + esc(c.patientNom) + (age!==null?(' · '+age+' ans'):'') + (p&&p.telephone?(' · '+esc(p.telephone)):'') + '</div>' +
+    (p&&p.allergies ? '<div><b>Allergies :</b> '+esc(p.allergies)+'</div>' : '') +
+    '<div class="section-title">Motif</div><div>' + esc(c.motif||'—') + '</div>' +
+    (c.histoire ? '<div class="section-title">Histoire de la maladie</div><div>'+esc(c.histoire)+'</div>' : '') +
+    (c.examenClinique ? '<div class="section-title">Examen clinique</div><div>'+esc(c.examenClinique)+'</div>' : '') +
+    '<div class="section-title">Diagnostic</div><div>' + esc(c.diagnostic||'—') + '</div>' +
+    (c.examensDemandes ? '<div class="section-title">Examens complémentaires demandés</div><div>'+esc(c.examensDemandes)+'</div>' : '') +
+    (c.prescription && c.prescription.length ?
+      '<div class="section-title">Ordonnance</div><table><thead><tr><th>Médicament</th><th>Dosage</th><th>Posologie</th><th>Durée</th><th>Qté</th></tr></thead><tbody>' +
+      c.prescription.map(function(l){ return '<tr><td>'+esc(l.nom)+'</td><td>'+esc(l.dosage)+'</td><td>'+esc(l.posologie)+'</td><td>'+esc(l.duree)+'</td><td>'+l.quantite+'</td></tr>'; }).join('') +
+      '</tbody></table>' : '') +
+    (c.conseils ? '<div class="section-title">Conseils</div><div>'+esc(c.conseils)+'</div>' : '') +
+    (c.prochainRdv ? '<div class="section-title">Prochain rendez-vous</div><div>'+esc(c.prochainRdv)+'</div>' : '') +
+    '<div class="sign-row"><div>Prescripteur : .............................. <br><br>Fait le ' + fmtDateTime(c.date) + '</div><div>Signature et cachet</div></div>';
+  openPrintWindow('Consultation — ' + c.patientNom, html);
+}
+function printRecu(id){
+  var v = DB.ventes.filter(function(x){ return x.id===id; })[0];
+  if(!v) return;
+  var html =
+    printHeaderHtml('Reçu de vente — Pharmacie', fmtDateTime(v.date)) +
+    '<div><b>Client :</b> ' + esc(v.patientNom) + '</div>' +
+    '<table><thead><tr><th>Médicament</th><th>Qté</th><th>Prix unitaire</th><th>Total</th></tr></thead><tbody>' +
+    v.items.map(function(i){ return '<tr><td>'+esc(i.nom)+'</td><td>'+i.quantite+'</td><td>'+money(i.prixUnitaire)+'</td><td>'+money(i.total)+'</td></tr>'; }).join('') +
+    '<tr class="total-row"><td colspan="3">Total</td><td>'+money(v.total)+'</td></tr>' +
+    '<tr><td colspan="3">Montant payé</td><td>'+money(v.montantPaye)+'</td></tr>' +
+    (v.reste>0 ? '<tr><td colspan="3">Reste à crédit</td><td>'+money(v.reste)+'</td></tr>' : '') +
+    '</tbody></table>' +
+    '<div class="sign-row"><div>Merci de votre confiance</div><div>Cachet</div></div>';
+  openPrintWindow('Reçu — ' + v.patientNom, html);
+}
+
+/* ---------- Écran de configuration (première utilisation) ---------- */
+function renderSetupScreen(){
+  document.getElementById('app').innerHTML =
+    '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">' +
+      '<div class="card" style="max-width:480px;width:100%;">' +
+        '<h1 class="page-title">Connecter la clinique</h1>' +
+        '<div class="page-sub" style="margin-bottom:16px;">Colle ici l\'URL de ta base de données Firebase (Realtime Database) pour que tous les postes de la clinique partagent les mêmes données.</div>' +
+        '<label class="block">URL de la base de données<input id="setupUrl" placeholder="https://mon-projet-default-rtdb.firebaseio.com"></label>' +
+        '<div style="margin-top:14px;"><button class="btn btn-primary" onclick="saveFirebaseUrl()">Connecter</button></div>' +
+        '<div class="muted small" style="margin-top:16px;line-height:1.6;">Pas encore de base ? Demande la procédure de création gratuite (5 minutes, sans carte bancaire).</div>' +
+      '</div>' +
+    '</div>';
+}
+function saveFirebaseUrl(){
+  var u = val('setupUrl');
+  if(!u || u.indexOf('http')!==0){ alert('Merci de coller une URL valide (commençant par https://).'); return; }
+  localStorage.setItem(FIREBASE_URL_KEY, u);
+  firebaseUrl = u;
+  boot();
+}
+function openSettings(){
+  openModal('Paramètres',
+    '<div class="section-title" style="margin-top:0;">En-tête des documents imprimés</div>' +
+    '<label class="block">Nom du cabinet<input id="setupClinicName" value="' + esc(clinicInfo.nom) + '"></label>' +
+    '<label class="block">Services <span class="muted" style="font-weight:400;">(ex : Consultation - Soin - Maternité - Echographie)</span><input id="setupClinicTagline" value="' + esc(clinicInfo.tagline) + '"></label>' +
+    '<label class="block">Adresse<input id="setupClinicAdresse" value="' + esc(clinicInfo.adresse) + '"></label>' +
+    '<label class="block">Téléphone(s)<input id="setupClinicTel" value="' + esc(clinicInfo.tel) + '"></label>' +
+    '<label class="block">E-mail<input id="setupClinicEmail" value="' + esc(clinicInfo.email) + '"></label>' +
+    '<div class="section-title">Synchronisation</div>' +
+    '<label class="block">URL de la base de données Firebase<input id="setupUrl2" value="' + esc(firebaseUrl||'') + '"></label>' +
+    '<div class="muted small">Modifie l\'URL uniquement si tu changes de base de données. Tous les appareils de la clinique doivent utiliser la même URL.</div>',
+    '<button class="btn btn-ghost" onclick="closeModal()">Annuler</button>' +
+    '<button class="btn btn-primary" onclick="saveSettingsUrl()">Enregistrer</button>'
+  );
+}
+function saveSettingsUrl(){
+  var u = val('setupUrl2');
+  if(!u || u.indexOf('http')!==0){ alert('URL invalide.'); return; }
+  var info = {
+    nom: val('setupClinicName') || 'Cabinet Médical',
+    tagline: val('setupClinicTagline'),
+    adresse: val('setupClinicAdresse'),
+    tel: val('setupClinicTel'),
+    email: val('setupClinicEmail')
+  };
+  localStorage.setItem(FIREBASE_URL_KEY, u);
+  localStorage.setItem(CLINIC_INFO_KEY, JSON.stringify(info));
+  firebaseUrl = u;
+  clinicInfo = info;
+  closeModal();
+  manualRefresh();
+}
+function boot(){
+  loadCache();
+  try {
+    var raw = localStorage.getItem(CLINIC_INFO_KEY);
+    if(raw) clinicInfo = Object.assign(clinicInfo, JSON.parse(raw));
+  } catch(e){ /* ignore */ }
+  if(!firebaseUrl){ renderSetupScreen(); return; }
+  render();
+  fetchRemote().then(function(){ render(); });
+  startPolling();
+}
+
+/* ---------- État de navigation ---------- */
+var state = { tab: 'dashboard', patientId: null, consFilter: 'today', caisseDate: null };
+
+var TABS = [
+  { key:'dashboard', label:'Tableau de bord', icon:'🏠' },
+  { key:'patients', label:'Patients', icon:'👥' },
+  { key:'consultations', label:'Consultations', icon:'🩺' },
+  { key:'pharmacie', label:'Pharmacie', icon:'💊' },
+  { key:'vente', label:'Vente', icon:'🛒' },
+  { key:'caisse', label:'Caisse', icon:'💰' },
+  { key:'rapports', label:'Rapports', icon:'📊' }
+];
+function tabLabel(k){ var t = TABS.filter(function(x){ return x.key===k; })[0]; return t ? t.label : ''; }
+
+function goTab(tab){ state.tab = tab; state.patientId = null; render(); }
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+
+/* ---------- Rendu racine ---------- */
+function render(){
+  document.getElementById('app').innerHTML =
+    '<div class="header">' +
+      '<button class="hamburger" onclick="toggleSidebar()">☰</button>' +
+      '<div class="header-title">' + tabLabel(state.tab) + '</div>' +
+      '<div style="margin-left:auto;display:flex;align-items:center;gap:10px;">' +
+        '<span id="syncBadge" class="mono" style="font-size:10.5px;color:#B9D3D0;">Synchro…</span>' +
+        '<button onclick="manualRefresh()" style="background:none;border:none;color:#fff;font-size:16px;cursor:pointer;">🔄</button>' +
+        '<button onclick="openSettings()" style="background:none;border:none;color:#fff;font-size:16px;cursor:pointer;">⚙</button>' +
+      '</div>' +
+    '</div>' +
+    '<div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>' +
+    '<nav id="sidebar" class="sidebar">' +
+      '<div class="brand">CLINIQUE<span>Gestion des soins</span></div>' +
+      TABS.map(function(t){
+        return '<button class="nav-btn ' + (state.tab===t.key?'active':'') + '" onclick="goTab(\'' + t.key + '\')">' + t.icon + ' ' + t.label + '</button>';
+      }).join('') +
+    '</nav>' +
+    '<main class="content">' + renderTabContent() + '</main>';
+  updateSyncBadge();
+}
+
+function renderTabContent(){
+  switch(state.tab){
+    case 'dashboard': return renderDashboard();
+    case 'patients': return state.patientId ? renderPatientDetail(state.patientId) : renderPatients();
+    case 'consultations': return renderConsultations();
+    case 'pharmacie': return renderPharmacie();
+    case 'vente': return renderVente();
+    case 'caisse': return renderCaisse();
+    case 'rapports': return renderRapports();
+    default: return '';
+  }
+}
+
+/* ---------- Composants d'affichage réutilisables ---------- */
+function monitorCard(label, value, unit){
+  return '<div class="monitor-card"><div class="monitor-label">' + label + '</div>' +
+    '<div class="monitor-value">' + value + ' <span>' + unit + '</span></div></div>';
+}
+function badge(tone, text){ return '<span class="badge badge-' + tone + '">' + text + '</span>'; }
+function emptyState(text){ return '<div class="empty">' + text + '</div>'; }
+function infoRow(label, value){
+  return '<div class="info-row"><div class="info-label">' + label + '</div><div class="info-value">' + esc(value) + '</div></div>';
+}
+
+/* ---------- Modale générique ---------- */
+function openModal(title, bodyHtml, footerHtml){
+  document.getElementById('modalRoot').innerHTML =
+    '<div class="modal-overlay" onclick="closeModalIfOverlay(event)">' +
+      '<div class="modal-box" onclick="event.stopPropagation()">' +
+        '<div class="modal-header"><h3>' + title + '</h3><button onclick="closeModal()">✕</button></div>' +
+        '<div class="modal-body">' + bodyHtml + '</div>' +
+        (footerHtml ? '<div class="modal-footer">' + footerHtml + '</div>' : '') +
+      '</div>' +
+    '</div>';
+}
+function closeModal(){ document.getElementById('modalRoot').innerHTML = ''; }
+function closeModalIfOverlay(e){ if(e.target.classList.contains('modal-overlay')) closeModal(); }
+
+/* ---------- Caisse (fonctions partagées) ---------- */
+function addCaisseEntry(e){
+  var rec = { id: uid('cx'), date: nowISO(), type: e.type, source: e.source, montant: e.montant, description: e.description, refId: e.refId || null };
+  DB.caisse.unshift(rec);
+  saveDB('caisse');
+}
+function encaisserCredit(kind, id, montant){
+  if(kind === 'vente'){
+    var v = DB.ventes.filter(function(x){ return x.id===id; })[0];
+    DB.ventes = DB.ventes.map(function(x){
+      return x.id===id ? Object.assign({}, x, { montantPaye: x.montantPaye+montant, reste: Math.max(0, x.reste-montant) }) : x;
+    });
+    saveDB('ventes');
+    addCaisseEntry({ type:'recette', source:'credit', montant: montant, description: 'Règlement crédit vente — ' + (v?v.patientNom:''), refId:id });
+  } else {
+    var c = DB.consultations.filter(function(x){ return x.id===id; })[0];
+    DB.consultations = DB.consultations.map(function(x){
+      return x.id===id ? Object.assign({}, x, { montantPayeConsultation:(x.montantPayeConsultation||0)+montant, soldeConsultation: Math.max(0, x.soldeConsultation-montant) }) : x;
+    });
+    saveDB('consultations');
+    addCaisseEntry({ type:'recette', source:'credit', montant: montant, description: 'Règlement crédit consultation — ' + (c?c.patientNom:''), refId:id });
+  }
+}
+
+/* ============================================================
+   TABLEAU DE BORD
+   ============================================================ */
+function renderDashboard(){
+  var today = todayISO();
+  var consultToday = DB.consultations.filter(function(c){ return c.date.slice(0,10)===today; });
+  var recettesToday = DB.caisse.filter(function(c){ return c.date.slice(0,10)===today && c.type==='recette'; })
+    .reduce(function(a,b){ return a+b.montant; }, 0);
+  var depensesToday = DB.caisse.filter(function(c){ return c.date.slice(0,10)===today && c.type==='depense'; })
+    .reduce(function(a,b){ return a+b.montant; }, 0);
+  var ruptures = DB.stock.filter(function(s){ return s.quantite <= (s.seuilAlerte||5); });
+  var enAttente = DB.consultations.filter(function(c){ return c.pharmacieStatut==='en_attente'; });
+  var creditsCons = DB.consultations.filter(function(c){ return c.soldeConsultation>0; });
+  var creditsVentes = DB.ventes.filter(function(v){ return v.reste>0; });
+
+  var credits = creditsCons.map(function(c){ return { nom:c.patientNom, reste:c.soldeConsultation, type:'Consultation' }; })
+    .concat(creditsVentes.map(function(v){ return { nom:v.patientNom, reste:v.reste, type:'Vente' }; }));
+
+  return (
+    '<h1 class="page-title">Tableau de bord</h1>' +
+    '<div class="page-sub">' + new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) + '</div>' +
+    '<div class="monitor-row">' +
+      monitorCard('Patients du jour', consultToday.length, 'cons.') +
+      monitorCard('Recettes du jour', recettesToday.toLocaleString('fr-FR'), 'FCFA') +
+      monitorCard('Dépenses du jour', depensesToday.toLocaleString('fr-FR'), 'FCFA') +
+      monitorCard('Solde du jour', (recettesToday-depensesToday).toLocaleString('fr-FR'), 'FCFA') +
+    '</div>' +
+    '<div class="grid-2">' +
+      '<div class="card">' +
+        '<div class="section-head">⚠️ Stock à surveiller <a onclick="goTab(\'pharmacie\')">Voir ›</a></div>' +
+        (ruptures.length===0 ? emptyState('Aucune alerte de stock.') :
+          ruptures.slice(0,6).map(function(s){
+            return '<div class="row-between"><span>' + esc(s.nom) + ' <span class="muted">(' + esc(s.dosage||'') + ')</span></span>' +
+              badge(s.quantite===0?'danger':'accent', s.quantite + ' en stock') + '</div>';
+          }).join('')
+        ) +
+      '</div>' +
+      '<div class="card">' +
+        '<div class="section-head">💊 Ordonnances en attente <a onclick="goTab(\'vente\')">Voir ›</a></div>' +
+        (enAttente.length===0 ? emptyState('Aucune ordonnance en attente.') :
+          enAttente.slice(0,6).map(function(c){
+            return '<div class="row-between"><span>' + esc(c.patientNom) + '</span>' + badge('accent', c.prescription.length + ' article(s)') + '</div>';
+          }).join('')
+        ) +
+      '</div>' +
+      '<div class="card">' +
+        '<div class="section-head">💰 Crédits non réglés <a onclick="goTab(\'caisse\')">Voir ›</a></div>' +
+        (credits.length===0 ? emptyState('Aucun crédit en cours.') :
+          credits.slice(0,6).map(function(c){
+            return '<div class="row-between"><span>' + esc(c.nom) + ' <span class="muted">· ' + c.type + '</span></span>' +
+              '<span class="mono danger-text">' + money(c.reste) + '</span></div>';
+          }).join('')
+        ) +
+      '</div>' +
+      '<div class="card">' +
+        '<div class="section-head">🩺 Consultations du jour <a onclick="goTab(\'consultations\')">Voir ›</a></div>' +
+        (consultToday.length===0 ? emptyState("Aucune consultation aujourd'hui.") :
+          consultToday.slice(0,6).map(function(c){
+            return '<div class="row-between"><span>' + esc(c.patientNom) + '</span><span class="muted">' + esc(c.diagnostic||c.motif||'—') + '</span></div>';
+          }).join('')
+        ) +
+      '</div>' +
+    '</div>'
+  );
+}
+
+/* ============================================================
+   PATIENTS
+   ============================================================ */
+function renderPatients(){
+  return (
+    '<div class="view-header"><div><h1 class="page-title">Patients</h1>' +
+    '<div class="page-sub">' + DB.patients.length + ' dossier(s) enregistré(s)</div></div>' +
+    '<button class="btn btn-primary" onclick="openPatientModal()">+ Nouveau patient</button></div>' +
+    '<div class="search-row"><input id="patientSearchInput" type="text" placeholder="Rechercher par nom, téléphone, numéro…" oninput="filterPatients(this.value)"></div>' +
+    '<div class="card card-flat" id="patientsListWrap">' + patientsTableHTML(DB.patients) + '</div>'
+  );
+}
+function patientsTableHTML(list){
+  if(list.length===0) return emptyState('Aucun patient trouvé.');
+  return '<table class="table"><thead><tr><th>N° dossier</th><th>Nom</th><th>Sexe</th><th>Téléphone</th><th>Enregistré le</th><th></th></tr></thead><tbody>' +
+    list.map(function(p){
+      return '<tr onclick="openPatient(\'' + p.id + '\')">' +
+        '<td class="mono">' + esc(p.numero) + '</td>' +
+        '<td>' + esc(p.prenom) + ' ' + esc(p.nom) + '</td>' +
+        '<td>' + p.sexe + '</td>' +
+        '<td class="mono">' + esc(p.telephone||'—') + '</td>' +
+        '<td class="mono">' + fmtDateTime(p.createdAt) + '</td>' +
+        '<td class="chevron">›</td></tr>';
+    }).join('') +
+    '</tbody></table>';
+}
+function filterPatients(q){
+  q = q.trim().toLowerCase();
+  var list = DB.patients.filter(function(p){
+    return !q || (p.nom+' '+p.prenom+' '+(p.telephone||'')+' '+p.numero).toLowerCase().indexOf(q) !== -1;
+  });
+  document.getElementById('patientsListWrap').innerHTML = patientsTableHTML(list);
+}
+function openPatient(id){ state.tab='patients'; state.patientId=id; render(); }
+
+function openPatientModal(){
+  openModal('Nouveau patient',
+    '<div class="form-grid">' +
+      '<label>Nom<input id="f_nom"></label>' +
+      '<label>Prénom<input id="f_prenom"></label>' +
+      '<label>Sexe<select id="f_sexe"><option value="F">Féminin</option><option value="M">Masculin</option></select></label>' +
+      '<label>Date de naissance<input id="f_dn" type="date"></label>' +
+      '<label>Téléphone<input id="f_tel"></label>' +
+      '<label>Profession<input id="f_prof"></label>' +
+      '<label>Adresse<input id="f_adr"></label>' +
+      '<label>Personne à contacter<input id="f_contact"></label>' +
+      '<label>Groupe sanguin<select id="f_gs"><option value="">Inconnu</option>' +
+        ['O+','O-','A+','A-','B+','B-','AB+','AB-'].map(function(g){ return '<option>'+g+'</option>'; }).join('') +
+      '</select></label>' +
+      '<div></div>' +
+      '<label class="span-2">Allergies connues<input id="f_allergies" placeholder="Ex : pénicilline, arachide…"></label>' +
+      '<label class="span-2">Antécédents (médicaux, chirurgicaux, familiaux)<textarea id="f_antecedents" rows="3"></textarea></label>' +
+    '</div>',
+    '<button class="btn btn-ghost" onclick="closeModal()">Annuler</button>' +
+    '<button class="btn btn-primary" onclick="submitPatient()">Enregistrer le patient</button>'
+  );
+}
+function submitPatient(){
+  var nom = val('f_nom'), prenom = val('f_prenom');
+  if(!nom || !prenom){ alert('Le nom et le prénom sont obligatoires.'); return; }
+  var numero = 'P-' + String(DB.patients.length+1).padStart(5,'0');
+  var rec = {
+    id: uid('pat'), numero: numero, createdAt: nowISO(),
+    nom: nom, prenom: prenom, sexe: val('f_sexe') || document.getElementById('f_sexe').value,
+    dateNaissance: val('f_dn'), telephone: val('f_tel'), profession: val('f_prof'),
+    adresse: val('f_adr'), contact: val('f_contact'), groupeSanguin: document.getElementById('f_gs').value,
+    allergies: val('f_allergies'), antecedents: val('f_antecedents')
+  };
+  DB.patients.unshift(rec); saveDB('patients');
+  closeModal();
+  openPatient(rec.id);
+}
+
+function renderPatientDetail(id){
+  var p = DB.patients.filter(function(x){ return x.id===id; })[0];
+  if(!p){ state.patientId=null; return renderPatients(); }
+  var consults = DB.consultations.filter(function(c){ return c.patientId===id; });
+  var ventesP = DB.ventes.filter(function(v){ return v.patientId===id; });
+  var age = p.dateNaissance ? Math.floor((Date.now()-new Date(p.dateNaissance))/3.15576e10) : null;
+
+  return (
+    '<button class="link-back" onclick="state.patientId=null; render();">‹ Retour aux patients</button>' +
+    '<div class="view-header"><div>' +
+      '<div class="mono muted">' + esc(p.numero) + '</div>' +
+      '<h1 class="page-title">' + esc(p.prenom) + ' ' + esc(p.nom) + '</h1>' +
+      '<div class="page-sub">' + (p.sexe==='F'?'Femme':'Homme') + (age!==null?' · '+age+' ans':'') + ' · ' + esc(p.telephone||'—') + '</div>' +
+    '</div><button class="btn btn-primary" onclick="openConsultForPatient(\'' + p.id + '\')">+ Nouvelle consultation</button></div>' +
+    '<div class="grid-3">' +
+      '<div class="card">' + infoRow('Groupe sanguin', p.groupeSanguin||'—') + infoRow('Allergies', p.allergies||'Aucune connue') + '</div>' +
+      '<div class="card">' + infoRow('Profession', p.profession||'—') + infoRow('Adresse', p.adresse||'—') + '</div>' +
+      '<div class="card">' + infoRow('Contact urgence', p.contact||'—') + infoRow('Antécédents', p.antecedents||'Aucun renseigné') + '</div>' +
+    '</div>' +
+    '<div class="card card-flat">' +
+      '<div class="section-head-static">🩺 Historique des consultations (' + consults.length + ')</div>' +
+      (consults.length===0 ? emptyState('Aucune consultation enregistrée.') :
+        '<table class="table"><thead><tr><th>Date</th><th>Motif</th><th>Diagnostic</th><th>Solde</th></tr></thead><tbody>' +
+        consults.map(function(c){
+          return '<tr><td class="mono">' + fmtDateTime(c.date) + '</td><td>' + esc(c.motif||'—') + '</td><td>' + esc(c.diagnostic||'—') + '</td>' +
+            '<td>' + (c.soldeConsultation>0 ? badge('danger', money(c.soldeConsultation)) : badge('success','Soldé')) + '</td></tr>';
+        }).join('') + '</tbody></table>'
+      ) +
+    '</div>' +
+    '<div class="card card-flat">' +
+      '<div class="section-head-static">🛒 Achats en pharmacie (' + ventesP.length + ')</div>' +
+      (ventesP.length===0 ? emptyState('Aucun achat enregistré.') :
+        '<table class="table"><thead><tr><th>Date</th><th>Articles</th><th>Total</th><th>Reste</th></tr></thead><tbody>' +
+        ventesP.map(function(v){
+          return '<tr><td class="mono">' + fmtDateTime(v.date) + '</td><td>' + v.items.map(function(i){return esc(i.nom);}).join(', ') + '</td>' +
+            '<td class="mono">' + money(v.total) + '</td><td>' + (v.reste>0 ? badge('danger', money(v.reste)) : badge('success','Réglé')) + '</td></tr>';
+        }).join('') + '</tbody></table>'
+      ) +
+    '</div>'
+  );
+}
+
+/* ============================================================
+   CONSULTATIONS
+   ============================================================ */
+var prescCounter = 0;
+
+function renderConsultations(){
+  var list = DB.consultations.filter(function(c){
+    return state.consFilter==='all' ? true : c.date.slice(0,10)===todayISO();
+  });
+  return (
+    '<div class="view-header"><div><h1 class="page-title">Consultations</h1>' +
+    '<div class="page-sub">' + list.length + ' consultation(s) ' + (state.consFilter==='all'?"au total":"aujourd'hui") + '</div></div>' +
+    '<button class="btn btn-primary" onclick="openPatientPicker()">+ Nouvelle consultation</button></div>' +
+    '<div class="filter-row">' +
+      '<button class="btn btn-sm ' + (state.consFilter!=='all'?'btn-primary':'btn-subtle') + '" onclick="state.consFilter=\'today\'; render();">Aujourd\'hui</button>' +
+      '<button class="btn btn-sm ' + (state.consFilter==='all'?'btn-primary':'btn-subtle') + '" onclick="state.consFilter=\'all\'; render();">Tout l\'historique</button>' +
+    '</div>' +
+    '<div class="card card-flat">' +
+      (list.length===0 ? emptyState('Aucune consultation.') :
+        '<table class="table"><thead><tr><th>Heure</th><th>Patient</th><th>Motif</th><th>Diagnostic</th><th>Pharmacie</th><th>Solde</th><th></th></tr></thead><tbody>' +
+        list.map(function(c){
+          return '<tr><td class="mono">' + fmtDateTime(c.date) + '</td><td>' + esc(c.patientNom) + '</td><td>' + esc(c.motif||'—') + '</td>' +
+            '<td>' + esc(c.diagnostic||'—') + '</td><td>' + pharmBadge(c.pharmacieStatut) + '</td>' +
+            '<td>' + (c.soldeConsultation>0 ? badge('danger',money(c.soldeConsultation)) : badge('success','Soldé')) + '</td>' +
+            '<td><button class="btn-tiny" onclick="printConsultation(\'' + c.id + '\')">🖨 Imprimer</button></td></tr>';
+        }).join('') + '</tbody></table>'
+      ) +
+    '</div>'
+  );
+}
+function pharmBadge(s){
+  if(s==='aucune') return badge('muted','Aucune ordonnance');
+  if(s==='en_attente') return badge('accent','En attente');
+  return badge('success','Facturée');
+}
+
+function openPatientPicker(){
+  openModal('Choisir le patient',
+    '<input id="pickSearch" type="text" placeholder="Rechercher un patient…" oninput="filterPickList(this.value)" autofocus>' +
+    '<div id="pickList" class="pick-list"></div>', ''
+  );
+}
+function filterPickList(q){
+  q = q.trim().toLowerCase();
+  var results = q ? DB.patients.filter(function(p){
+    return (p.nom+' '+p.prenom+' '+(p.telephone||'')).toLowerCase().indexOf(q) !== -1;
+  }).slice(0,8) : [];
+  document.getElementById('pickList').innerHTML = results.length ? results.map(function(p){
+    return '<button class="pick-item" onclick="closeModal(); openConsultForPatient(\'' + p.id + '\')">' +
+      '<div class="pick-name">' + esc(p.prenom) + ' ' + esc(p.nom) + '</div>' +
+      '<div class="pick-sub mono">' + esc(p.numero) + ' · ' + esc(p.telephone||'') + '</div></button>';
+  }).join('') : (q ? emptyState("Aucun patient. Créez-le d'abord dans l'onglet Patients.") : '');
+}
+
+function openConsultForPatient(patientId){
+  var p = DB.patients.filter(function(x){ return x.id===patientId; })[0];
+  if(!p) return;
+  prescCounter = 0;
+  window._consultPatient = p;
+  openModal('Consultation — ' + esc(p.prenom) + ' ' + esc(p.nom),
+    '<div class="form-grid">' +
+      '<label>Motif de consultation<input id="c_motif"></label>' +
+      '<label>Type<select id="c_type">' +
+        ['Consultation normale','Urgence','Contrôle','Pansement / injection','Consultation prénatale','Consultation spécialisée']
+          .map(function(t){ return '<option>'+t+'</option>'; }).join('') +
+      '</select></label>' +
+    '</div>' +
+    '<label class="block">Histoire de la maladie<textarea id="c_histoire" rows="2"></textarea></label>' +
+    '<label class="block">Examen clinique<textarea id="c_exam" rows="2"></textarea></label>' +
+    '<div class="form-grid">' +
+      '<label>Diagnostic retenu<input id="c_diag"></label>' +
+      '<label>Examens complémentaires demandés<input id="c_examens" placeholder="Labo, imagerie, ECG…"></label>' +
+    '</div>' +
+    '<div class="presc-block">' +
+      '<div class="row-between"><b>Ordonnance</b><button class="btn btn-sm btn-subtle" onclick="addPrescLine()">+ Ajouter un médicament</button></div>' +
+      '<datalist id="stockNamesList">' + DB.stock.map(function(s){ return '<option value="'+esc(s.nom)+'">'; }).join('') + '</datalist>' +
+      '<div id="prescLines"></div>' +
+    '</div>' +
+    '<div class="form-grid">' +
+      '<label>Conseils<input id="c_conseils"></label>' +
+      '<label>Prochain rendez-vous<input id="c_rdv" type="date"></label>' +
+    '</div>' +
+    '<div class="pay-box">' +
+      '<label>Montant de la consultation (FCFA)<input id="c_montant" type="number" min="0" value="0"></label>' +
+      '<label>Montant payé (FCFA)<input id="c_paye" type="number" min="0" value="0"></label>' +
+    '</div>',
+    '<button class="btn btn-ghost" onclick="closeModal()">Annuler</button>' +
+    '<button class="btn btn-primary" onclick="submitConsultation()">Enregistrer la consultation</button>'
+  );
+}
+function addPrescLine(){
+  prescCounter++;
+  var rowId = 'presc_' + prescCounter;
+  var html = '<div class="presc-row" id="' + rowId + '">' +
+    '<input class="p-nom" list="stockNamesList" placeholder="Médicament" onchange="autofillPresc(\'' + rowId + '\', this.value)">' +
+    '<input class="p-dosage" placeholder="Dosage">' +
+    '<input class="p-posologie" placeholder="Posologie">' +
+    '<input class="p-duree" placeholder="Durée">' +
+    '<input class="p-qte" type="number" min="1" value="1" placeholder="Qté">' +
+    '<button class="btn-icon-danger" onclick="document.getElementById(\'' + rowId + '\').remove()">✕</button>' +
+  '</div>';
+  document.getElementById('prescLines').insertAdjacentHTML('beforeend', html);
+}
+function autofillPresc(rowId, nomValue){
+  var match = DB.stock.filter(function(s){ return s.nom.toLowerCase()===nomValue.toLowerCase(); })[0];
+  if(!match) return;
+  document.getElementById(rowId).querySelector('.p-dosage').value = match.dosage || '';
+}
+function submitConsultation(){
+  var p = window._consultPatient;
+  var lines = Array.prototype.slice.call(document.querySelectorAll('#prescLines .presc-row')).map(function(row){
+    return {
+      id: uid('lig'),
+      nom: row.querySelector('.p-nom').value.trim(),
+      dosage: row.querySelector('.p-dosage').value.trim(),
+      posologie: row.querySelector('.p-posologie').value.trim(),
+      duree: row.querySelector('.p-duree').value.trim(),
+      quantite: Number(row.querySelector('.p-qte').value) || 1
+    };
+  }).filter(function(l){ return l.nom; });
+
+  var montant = Number(val('c_montant')) || 0;
+  var paye = Number(val('c_paye')) || 0;
+  var rec = {
+    id: uid('cons'), date: nowISO(), patientId: p.id, patientNom: p.prenom + ' ' + p.nom,
+    motif: val('c_motif'), type: document.getElementById('c_type').value,
+    histoire: val('c_histoire'), examenClinique: val('c_exam'),
+    diagnostic: val('c_diag'), examensDemandes: val('c_examens'), prescription: lines,
+    conseils: val('c_conseils'), prochainRdv: val('c_rdv'),
+    montantConsultation: montant, montantPayeConsultation: paye, soldeConsultation: Math.max(0, montant-paye),
+    pharmacieStatut: lines.length ? 'en_attente' : 'aucune'
+  };
+  DB.consultations.unshift(rec); saveDB('consultations');
+  if(paye>0){
+    addCaisseEntry({ type:'recette', source:'consultation', montant:paye, description:'Consultation — '+rec.patientNom, refId:rec.id });
+  }
+  closeModal();
+  state.tab='consultations'; state.consFilter='today';
+  render();
+}
+
+/* ============================================================
+   PHARMACIE / STOCK
+   ============================================================ */
+function renderPharmacie(){
+  var valeurStock = DB.stock.reduce(function(a,s){ return a + s.quantite*s.prixAchat; }, 0);
+  return (
+    '<div class="view-header"><div><h1 class="page-title">Pharmacie · Stock</h1>' +
+    '<div class="page-sub">' + DB.stock.length + ' référence(s) · valeur du stock ' + money(valeurStock) + '</div></div>' +
+    '<button class="btn btn-primary" onclick="openStockModal(null)">+ Ajouter un médicament</button></div>' +
+    '<div class="search-row"><input id="stockSearchInput" placeholder="Rechercher un médicament…" oninput="filterStock(this.value)"></div>' +
+    '<div class="card card-flat" id="stockListWrap">' + stockTableHTML(DB.stock) + '</div>'
+  );
+}
+function stockTableHTML(list){
+  if(list.length===0) return emptyState('Aucun médicament en stock.');
+  return '<table class="table"><thead><tr><th>Nom</th><th>Forme/Dosage</th><th>Qté</th><th>Prix vente</th><th>Expiration</th><th>État</th><th></th></tr></thead><tbody>' +
+    list.map(function(s){
+      return '<tr><td>' + esc(s.nom) + '</td><td>' + esc(s.forme) + ' ' + esc(s.dosage||'') + '</td>' +
+        '<td class="mono">' + s.quantite + '</td><td class="mono">' + money(s.prixVente) + '</td>' +
+        '<td class="mono">' + esc(s.expiration||'—') + '</td><td>' + stockStatusBadge(s) + '</td>' +
+        '<td class="row-actions"><button class="btn-tiny" onclick="openStockModal(\'' + s.id + '\')">Modifier</button>' +
+        '<button class="btn-icon-danger" onclick="deleteStock(\'' + s.id + '\')">✕</button></td></tr>';
+    }).join('') + '</tbody></table>';
+}
+function stockStatusBadge(s){
+  var exp = s.expiration ? new Date(s.expiration) : null;
+  if(exp && exp < new Date()) return badge('danger','Expiré');
+  if(exp && (exp-Date.now())/8.64e7 < 60) return badge('accent','Expire bientôt');
+  if(s.quantite <= (s.seuilAlerte||5)) return badge('danger','Stock faible');
+  return badge('success','OK');
+}
+function filterStock(q){
+  q = q.trim().toLowerCase();
+  var list = DB.stock.filter(function(s){ return (s.nom+' '+(s.dosage||'')).toLowerCase().indexOf(q) !== -1; });
+  document.getElementById('stockListWrap').innerHTML = stockTableHTML(list);
+}
+function deleteStock(id){
+  if(!confirm('Supprimer ce médicament du stock ?')) return;
+  DB.stock = DB.stock.filter(function(s){ return s.id!==id; });
+  saveDB('stock');
+  var inp = document.getElementById('stockSearchInput');
+  filterStock(inp ? inp.value : '');
+}
+function openStockModal(id){
+  window._editStockId = id;
+  var s = id ? DB.stock.filter(function(x){ return x.id===id; })[0] :
+    { nom:'',forme:'Comprimé',dosage:'',prixAchat:0,prixVente:0,quantite:0,lot:'',expiration:'',fournisseur:'',seuilAlerte:5 };
+  openModal(id ? 'Modifier le médicament' : 'Nouveau médicament',
+    '<div class="form-grid">' +
+      '<label>Nom<input id="s_nom" value="' + esc(s.nom) + '"></label>' +
+      '<label>Forme<select id="s_forme">' +
+        ['Comprimé','Sirop','Injectable','Pommade','Gélule','Sachet','Autre'].map(function(f){
+          return '<option ' + (f===s.forme?'selected':'') + '>' + f + '</option>';
+        }).join('') +
+      '</select></label>' +
+      '<label>Dosage<input id="s_dosage" value="' + esc(s.dosage) + '" placeholder="Ex : 500mg"></label>' +
+      '<label>Fournisseur<input id="s_fourn" value="' + esc(s.fournisseur) + '"></label>' +
+      '<label>Prix d\'achat (FCFA)<input id="s_pa" type="number" min="0" value="' + s.prixAchat + '"></label>' +
+      '<label>Prix de vente (FCFA)<input id="s_pv" type="number" min="0" value="' + s.prixVente + '"></label>' +
+      '<label>Quantité en stock<input id="s_qte" type="number" min="0" value="' + s.quantite + '"></label>' +
+      '<label>Seuil d\'alerte<input id="s_seuil" type="number" min="0" value="' + s.seuilAlerte + '"></label>' +
+      '<label>Numéro de lot<input id="s_lot" value="' + esc(s.lot) + '"></label>' +
+      '<label>Date d\'expiration<input id="s_exp" type="date" value="' + (s.expiration||'') + '"></label>' +
+    '</div>',
+    '<button class="btn btn-ghost" onclick="closeModal()">Annuler</button>' +
+    '<button class="btn btn-primary" onclick="submitStock()">Enregistrer</button>'
+  );
+}
+function submitStock(){
+  var nom = val('s_nom');
+  if(!nom){ alert('Le nom est obligatoire.'); return; }
+  var data = {
+    nom: nom, forme: document.getElementById('s_forme').value, dosage: val('s_dosage'),
+    fournisseur: val('s_fourn'), prixAchat: Number(val('s_pa'))||0, prixVente: Number(val('s_pv'))||0,
+    quantite: Number(val('s_qte'))||0, seuilAlerte: Number(val('s_seuil'))||5,
+    lot: val('s_lot'), expiration: val('s_exp')
+  };
+  if(window._editStockId){
+    DB.stock = DB.stock.map(function(s){ return s.id===window._editStockId ? Object.assign({}, s, data) : s; });
+  } else {
+    DB.stock.unshift(Object.assign({ id: uid('stk'), createdAt: nowISO() }, data));
+  }
+  saveDB('stock');
+  closeModal();
+  render();
+}
+
+/* ============================================================
+   VENTE
+   ============================================================ */
+function renderVente(){
+  var enAttente = DB.consultations.filter(function(c){ return c.pharmacieStatut==='en_attente'; });
+  return (
+    '<div class="view-header"><div><h1 class="page-title">Vente en pharmacie</h1>' +
+    '<div class="page-sub">' + enAttente.length + ' ordonnance(s) en attente de facturation</div></div>' +
+    '<button class="btn btn-primary" onclick="openSaleModal(null)">+ Vente libre</button></div>' +
+    '<div class="card"><div class="section-head-static">⏳ Ordonnances en attente</div>' +
+      (enAttente.length===0 ? emptyState('Aucune ordonnance en attente.') :
+        enAttente.map(function(c){
+          return '<div class="row-between pending-row"><div><div class="bold">' + esc(c.patientNom) + '</div>' +
+            '<div class="muted small">' + c.prescription.map(function(p){return esc(p.nom);}).join(', ') + '</div></div>' +
+            '<button class="btn btn-sm btn-primary" onclick="openSaleModal(\'' + c.id + '\')">Facturer</button></div>';
+        }).join('')
+      ) +
+    '</div>' +
+    '<div class="card card-flat"><div class="section-head-static">🛒 Ventes récentes</div>' +
+      (DB.ventes.length===0 ? emptyState('Aucune vente enregistrée.') :
+        '<table class="table"><thead><tr><th>Date</th><th>Client</th><th>Articles</th><th>Total</th><th>Statut</th><th></th></tr></thead><tbody>' +
+        DB.ventes.slice(0,12).map(function(v){
+          return '<tr><td class="mono">' + fmtDateTime(v.date) + '</td><td>' + esc(v.patientNom) + '</td>' +
+            '<td>' + v.items.map(function(i){return esc(i.nom);}).join(', ') + '</td>' +
+            '<td class="mono">' + money(v.total) + '</td>' +
+            '<td>' + (v.reste>0 ? badge('danger','Crédit '+money(v.reste)) : badge('success','Réglé')) + '</td>' +
+            '<td><button class="btn-tiny" onclick="printRecu(\'' + v.id + '\')">🖨 Reçu</button></td></tr>';
+        }).join('') + '</tbody></table>'
+      ) +
+    '</div>'
+  );
+}
+
+var saleLineCounter = 0;
+function openSaleModal(consultationId){
+  saleLineCounter = 0;
+  var cons = consultationId ? DB.consultations.filter(function(c){ return c.id===consultationId; })[0] : null;
+  window._saleBase = cons ?
+    { consultationId: cons.id, patientId: cons.patientId, patientNom: cons.patientNom } :
+    { consultationId: null, patientId: null, patientNom: 'Client comptoir' };
+
+  openModal('Nouvelle vente',
+    (cons ? '' :
+      '<label class="block">Associer à un patient (optionnel)<input id="saleSearchPatient" placeholder="Rechercher un patient…" oninput="filterSalePatient(this.value)"></label>' +
+      '<div id="salePatientPick"></div>'
+    ) +
+    '<div class="muted small" id="saleClientLabel" style="margin:6px 0;">Client : <b>' + esc(window._saleBase.patientNom) + '</b></div>' +
+    '<datalist id="stockNamesList2">' + DB.stock.map(function(s){ return '<option value="'+esc(s.nom)+'">'; }).join('') + '</datalist>' +
+    '<div id="saleLines"></div>' +
+    '<button class="btn btn-sm btn-subtle" onclick="addSaleLine()">+ Ajouter une ligne</button>' +
+    '<div class="pay-box" style="margin-top:12px;">' +
+      '<div class="row-between"><b>Total</b><b class="mono" id="saleTotalDisplay">0 FCFA</b></div>' +
+      '<label>Montant payé (FCFA)<input id="salePaye" type="number" min="0" value="0" oninput="updateSaleTotals()"></label>' +
+      '<div id="saleCreditWarning" class="danger-text small"></div>' +
+    '</div>',
+    '<button class="btn btn-ghost" onclick="closeModal()">Annuler</button>' +
+    '<button class="btn btn-primary" onclick="submitSale()">Valider la vente</button>'
+  );
+
+  if(cons && cons.prescription.length){
+    cons.prescription.forEach(function(it){ addSaleLine(it.nom, it.quantite); });
+  } else {
+    addSaleLine();
+  }
+  updateSaleTotals();
+}
+function filterSalePatient(q){
+  q = q.trim().toLowerCase();
+  var results = q ? DB.patients.filter(function(p){ return (p.nom+' '+p.prenom).toLowerCase().indexOf(q)!==-1; }).slice(0,6) : [];
+  document.getElementById('salePatientPick').innerHTML = results.map(function(p){
+    return '<button class="pick-item" onclick="selectSalePatient(\'' + p.id + '\',\'' + esc(p.prenom)+' '+esc(p.nom) + '\')">' + esc(p.prenom) + ' ' + esc(p.nom) + '</button>';
+  }).join('');
+}
+function selectSalePatient(id, nom){
+  window._saleBase.patientId = id; window._saleBase.patientNom = nom;
+  document.getElementById('saleClientLabel').innerHTML = 'Client : <b>' + esc(nom) + '</b>';
+  document.getElementById('salePatientPick').innerHTML = '';
+  document.getElementById('saleSearchPatient').value = '';
+}
+function addSaleLine(nom, qte){
+  saleLineCounter++;
+  var rowId = 'sale_' + saleLineCounter;
+  var match = nom ? DB.stock.filter(function(s){ return s.nom.toLowerCase()===nom.toLowerCase(); })[0] : null;
+  var html = '<div class="presc-row sale-row" id="' + rowId + '">' +
+    '<input class="sl-nom" list="stockNamesList2" placeholder="Médicament" value="' + (nom?esc(nom):'') + '" onchange="autofillSaleLine(\'' + rowId + '\', this.value)">' +
+    '<input class="sl-qte" type="number" min="1" value="' + (qte||1) + '" oninput="updateSaleTotals()">' +
+    '<input class="sl-prix" type="number" min="0" value="' + (match?match.prixVente:0) + '" oninput="updateSaleTotals()">' +
+    '<span class="sl-dispo mono small muted">' + (match?match.quantite:0) + ' dispo</span>' +
+    '<button class="btn-icon-danger" onclick="document.getElementById(\'' + rowId + '\').remove(); updateSaleTotals();">✕</button>' +
+    '<input type="hidden" class="sl-stockid" value="' + (match?match.id:'') + '">' +
+  '</div>';
+  document.getElementById('saleLines').insertAdjacentHTML('beforeend', html);
+  updateSaleTotals();
+}
+function autofillSaleLine(rowId, nomValue){
+  var row = document.getElementById(rowId);
+  var match = DB.stock.filter(function(s){ return s.nom.toLowerCase()===nomValue.toLowerCase(); })[0];
+  row.querySelector('.sl-prix').value = match ? match.prixVente : 0;
+  row.querySelector('.sl-dispo').textContent = (match?match.quantite:0) + ' dispo';
+  row.querySelector('.sl-stockid').value = match ? match.id : '';
+  updateSaleTotals();
+}
+function updateSaleTotals(){
+  var rows = Array.prototype.slice.call(document.querySelectorAll('#saleLines .sale-row'));
+  var total = rows.reduce(function(a,row){
+    return a + (Number(row.querySelector('.sl-qte').value)||0) * (Number(row.querySelector('.sl-prix').value)||0);
+  }, 0);
+  var totalEl = document.getElementById('saleTotalDisplay');
+  if(totalEl) totalEl.textContent = money(total);
+  var paye = Number(val('salePaye')) || 0;
+  var warnEl = document.getElementById('saleCreditWarning');
+  if(warnEl) warnEl.textContent = (total-paye>0) ? ('Reste à crédit : ' + money(total-paye)) : '';
+}
+function submitSale(){
+  var rows = Array.prototype.slice.call(document.querySelectorAll('#saleLines .sale-row'));
+  var items = rows.map(function(row){
+    var stockId = row.querySelector('.sl-stockid').value;
+    var nom = row.querySelector('.sl-nom').value.trim();
+    var quantite = Number(row.querySelector('.sl-qte').value) || 0;
+    var prixUnitaire = Number(row.querySelector('.sl-prix').value) || 0;
+    return (stockId && quantite>0) ? { stockId:stockId, nom:nom, quantite:quantite, prixUnitaire:prixUnitaire, total:quantite*prixUnitaire } : null;
+  }).filter(Boolean);
+  if(items.length===0){ alert('Ajoutez au moins un médicament du stock.'); return; }
+  var total = items.reduce(function(a,i){ return a+i.total; }, 0);
+  var paye = Math.min(Number(val('salePaye'))||0, total);
+  var reste = Math.max(0, total-paye);
+  var base = window._saleBase;
+  var rec = {
+    id: uid('vt'), date: nowISO(), consultationId: base.consultationId, patientId: base.patientId,
+    patientNom: base.patientNom, items: items, total: total, montantPaye: paye, reste: reste,
+    statut: reste===0 ? 'réglé' : (paye===0 ? 'crédit' : 'partiel')
+  };
+  DB.ventes.unshift(rec); saveDB('ventes');
+  items.forEach(function(it){
+    DB.stock = DB.stock.map(function(s){ return s.id===it.stockId ? Object.assign({}, s, { quantite: Math.max(0, s.quantite-it.quantite) }) : s; });
+  });
+  saveDB('stock');
+  if(base.consultationId){
+    DB.consultations = DB.consultations.map(function(c){ return c.id===base.consultationId ? Object.assign({}, c, { pharmacieStatut:'facturee' }) : c; });
+    saveDB('consultations');
+  }
+  if(paye>0){
+    addCaisseEntry({ type:'recette', source:'vente', montant:paye, description:'Vente pharmacie — '+rec.patientNom, refId:rec.id });
+  }
+  closeModal();
+  render();
+}
+
+/* ============================================================
+   CAISSE
+   ============================================================ */
+function renderCaisse(){
+  var dateF = state.caisseDate || todayISO();
+  var dayEntries = DB.caisse.filter(function(c){ return c.date.slice(0,10)===dateF; });
+  var recettes = dayEntries.filter(function(c){ return c.type==='recette'; }).reduce(function(a,b){ return a+b.montant; }, 0);
+  var depenses = dayEntries.filter(function(c){ return c.type==='depense'; }).reduce(function(a,b){ return a+b.montant; }, 0);
+  var credits = DB.consultations.filter(function(c){ return c.soldeConsultation>0; })
+    .map(function(c){ return { kind:'consultation', id:c.id, nom:c.patientNom, reste:c.soldeConsultation }; })
+    .concat(DB.ventes.filter(function(v){ return v.reste>0; })
+    .map(function(v){ return { kind:'vente', id:v.id, nom:v.patientNom, reste:v.reste }; }));
+
+  return (
+    '<div class="view-header"><div><h1 class="page-title">Caisse</h1>' +
+    '<div class="page-sub">Toutes les recettes et dépenses de la clinique</div></div>' +
+    '<button class="btn btn-subtle" onclick="openExpenseModal()">+ Enregistrer une dépense</button></div>' +
+    '<div class="filter-row">' +
+      '<input type="date" value="' + dateF + '" onchange="state.caisseDate=this.value; render();">' +
+      '<button class="btn btn-sm btn-subtle" onclick="state.caisseDate=null; render();">Aujourd\'hui</button>' +
+    '</div>' +
+    '<div class="monitor-row">' +
+      monitorCard('Recettes', recettes.toLocaleString('fr-FR'), 'FCFA') +
+      monitorCard('Dépenses', depenses.toLocaleString('fr-FR'), 'FCFA') +
+      monitorCard('Solde', (recettes-depenses).toLocaleString('fr-FR'), 'FCFA') +
+    '</div>' +
+    '<div class="card card-flat"><div class="section-head-static">💰 Mouvements de caisse</div>' +
+      (dayEntries.length===0 ? emptyState('Aucun mouvement pour cette date.') :
+        '<table class="table"><thead><tr><th>Heure</th><th>Type</th><th>Source</th><th>Description</th><th>Montant</th></tr></thead><tbody>' +
+        dayEntries.map(function(c){
+          return '<tr><td class="mono">' + fmtDateTime(c.date) + '</td>' +
+            '<td>' + (c.type==='recette' ? badge('success','Recette') : badge('danger','Dépense')) + '</td>' +
+            '<td>' + esc(c.source) + '</td><td>' + esc(c.description) + '</td><td class="mono">' + money(c.montant) + '</td></tr>';
+        }).join('') + '</tbody></table>'
+      ) +
+    '</div>' +
+    '<div class="card card-flat"><div class="section-head-static">⚠️ Crédits patients à recouvrer</div>' +
+      (credits.length===0 ? emptyState('Aucun crédit en cours.') :
+        '<table class="table"><thead><tr><th>Patient</th><th>Origine</th><th>Reste dû</th><th></th></tr></thead><tbody>' +
+        credits.map(function(c){
+          return '<tr><td>' + esc(c.nom) + '</td><td>' + (c.kind==='consultation'?'Consultation':'Vente pharmacie') + '</td>' +
+            '<td class="mono danger-text">' + money(c.reste) + '</td>' +
+            '<td><button class="btn btn-sm btn-subtle" onclick="openCreditModal(\'' + c.kind + '\',\'' + c.id + '\',' + c.reste + ')">Encaisser</button></td></tr>';
+        }).join('') + '</tbody></table>'
+      ) +
+    '</div>'
+  );
+}
+function openExpenseModal(){
+  openModal('Nouvelle dépense',
+    '<label class="block">Description<input id="e_desc"></label>' +
+    '<label class="block">Montant (FCFA)<input id="e_montant" type="number" min="0" value="0"></label>',
+    '<button class="btn btn-ghost" onclick="closeModal()">Annuler</button>' +
+    '<button class="btn btn-primary" onclick="submitExpense()">Enregistrer</button>'
+  );
+}
+function submitExpense(){
+  var m = Number(val('e_montant')) || 0;
+  if(m<=0) return;
+  addCaisseEntry({ type:'depense', source:'autre', montant:m, description: val('e_desc')||'Dépense' });
+  closeModal(); render();
+}
+function openCreditModal(kind, id, reste){
+  window._credit = { kind:kind, id:id, reste:reste };
+  openModal('Encaisser un crédit',
+    '<div class="muted small">Reste dû : <b class="danger-text">' + money(reste) + '</b></div>' +
+    '<label class="block">Montant encaissé (FCFA)<input id="cr_montant" type="number" min="0" max="' + reste + '" value="' + reste + '"></label>',
+    '<button class="btn btn-ghost" onclick="closeModal()">Annuler</button>' +
+    '<button class="btn btn-primary" onclick="submitCredit()">Confirmer le paiement</button>'
+  );
+}
+function submitCredit(){
+  var c = window._credit;
+  var m = Math.min(Number(val('cr_montant'))||0, c.reste);
+  if(m<=0){ closeModal(); return; }
+  encaisserCredit(c.kind, c.id, m);
+  closeModal(); render();
+}
+
+/* ============================================================
+   RAPPORTS
+   ============================================================ */
+function renderRapports(){
+  var last7 = [];
+  for(var i=6;i>=0;i--){ var d=new Date(); d.setDate(d.getDate()-i); last7.push(d.toISOString().slice(0,10)); }
+  var recettesParJour = last7.map(function(day){
+    return { jour: day.slice(5), recettes: DB.caisse.filter(function(c){ return c.date.slice(0,10)===day && c.type==='recette'; }).reduce(function(a,b){ return a+b.montant; },0) };
+  });
+  var maxRec = Math.max.apply(null, [1].concat(recettesParJour.map(function(r){return r.recettes;})));
+
+  var venteParMed = {};
+  DB.ventes.forEach(function(v){ v.items.forEach(function(it){ venteParMed[it.nom] = (venteParMed[it.nom]||0) + it.quantite; }); });
+  var topMeds = Object.keys(venteParMed).map(function(k){ return [k, venteParMed[k]]; }).sort(function(a,b){ return b[1]-a[1]; }).slice(0,6);
+  var maxMed = Math.max.apply(null, [1].concat(topMeds.map(function(m){return m[1];})));
+
+  var diagnostics = {};
+  DB.consultations.forEach(function(c){ if(c.diagnostic) diagnostics[c.diagnostic] = (diagnostics[c.diagnostic]||0) + 1; });
+  var topDiag = Object.keys(diagnostics).map(function(k){ return [k, diagnostics[k]]; }).sort(function(a,b){ return b[1]-a[1]; }).slice(0,6);
+  var maxDiag = Math.max.apply(null, [1].concat(topDiag.map(function(d){return d[1];})));
+
+  var caTotal = DB.caisse.filter(function(c){ return c.type==='recette'; }).reduce(function(a,b){ return a+b.montant; },0);
+  var depTotal = DB.caisse.filter(function(c){ return c.type==='depense'; }).reduce(function(a,b){ return a+b.montant; },0);
+  var valeurStock = DB.stock.reduce(function(a,s){ return a+s.quantite*s.prixAchat; },0);
+
+  return (
+    '<h1 class="page-title">Rapports & statistiques</h1>' +
+    '<div class="page-sub">Vue d\'ensemble de l\'activité de la clinique</div>' +
+    '<div class="monitor-row">' +
+      monitorCard('Patients enregistrés', DB.patients.length, '') +
+      monitorCard('Consultations totales', DB.consultations.length, '') +
+      monitorCard("Chiffre d'affaires", caTotal.toLocaleString('fr-FR'), 'FCFA') +
+      monitorCard('Dépenses totales', depTotal.toLocaleString('fr-FR'), 'FCFA') +
+      monitorCard('Bénéfice net', (caTotal-depTotal).toLocaleString('fr-FR'), 'FCFA') +
+      monitorCard('Valeur du stock', valeurStock.toLocaleString('fr-FR'), 'FCFA') +
+    '</div>' +
+    '<div class="card"><div class="section-head-static">📈 Recettes des 7 derniers jours</div>' +
+      '<div class="bar-chart">' +
+        recettesParJour.map(function(r){
+          return '<div class="bar-col"><div class="bar" style="height:' + Math.max(4,(r.recettes/maxRec)*120) + 'px" title="' + money(r.recettes) + '"></div>' +
+            '<div class="bar-label">' + r.jour + '</div></div>';
+        }).join('') +
+      '</div>' +
+    '</div>' +
+    '<div class="card"><div class="section-head-static">💊 Médicaments les plus vendus</div>' +
+      (topMeds.length===0 ? emptyState('Pas encore de ventes.') :
+        topMeds.map(function(m){
+          return '<div class="hbar-row"><div class="hbar-label">' + esc(m[0]) + '</div>' +
+            '<div class="hbar-track"><div class="hbar-fill" style="width:' + (m[1]/maxMed*100) + '%"></div></div>' +
+            '<div class="mono small">' + m[1] + '</div></div>';
+        }).join('')
+      ) +
+    '</div>' +
+    '<div class="card"><div class="section-head-static">🩺 Diagnostics les plus fréquents</div>' +
+      (topDiag.length===0 ? emptyState('Pas encore de diagnostics enregistrés.') :
+        topDiag.map(function(d){
+          return '<div class="hbar-row"><div class="hbar-label">' + esc(d[0]) + '</div>' +
+            '<div class="hbar-track"><div class="hbar-fill" style="width:' + (d[1]/maxDiag*100) + '%"></div></div>' +
+            '<div class="mono small">' + d[1] + '</div></div>';
+        }).join('')
+      ) +
+    '</div>'
+  );
+}
+
+/* ============================================================
+   DÉMARRAGE
+   ============================================================ */
+firebaseUrl = localStorage.getItem(FIREBASE_URL_KEY);
+boot();
+</script>
+</body>
+</html>
