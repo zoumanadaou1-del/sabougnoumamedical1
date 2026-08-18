@@ -209,6 +209,70 @@ function startPolling(){
   }, 20000);
 }
 
+/* ---------- Impression (ordonnances, comptes-rendus, reçus) ---------- */
+var CLINIC_NAME_KEY = 'clinique_nom';
+var clinicName = 'Clinique';
+
+function printCss(){
+  return "body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:24px;font-size:14px;}"
+    + ".doc-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0D5C63;padding-bottom:10px;margin-bottom:16px;}"
+    + ".doc-header h1{font-size:18px;margin:0;color:#0D5C63;}"
+    + ".doc-meta{font-size:12px;color:#555;text-align:right;}"
+    + "table{width:100%;border-collapse:collapse;margin-top:10px;}"
+    + "th,td{border:1px solid #ccc;padding:6px 8px;font-size:12.5px;text-align:left;}"
+    + ".section-title{font-weight:bold;margin-top:16px;margin-bottom:6px;font-size:13.5px;}"
+    + ".sign-row{display:flex;justify-content:space-between;margin-top:50px;font-size:12.5px;}"
+    + ".total-row td{font-weight:bold;}";
+}
+function openPrintWindow(title, bodyHtml){
+  var w = window.open('', '_blank');
+  if(!w){ alert("Le navigateur a bloqué la fenêtre d'impression. Autorise les pop-ups pour ce site (icône dans la barre d'adresse) puis réessaie."); return; }
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + esc(title) + '</title><style>' + printCss() + '</style></head><body>' + bodyHtml + '</body></html>');
+  w.document.close();
+  w.focus();
+  setTimeout(function(){ w.print(); }, 350);
+}
+function printConsultation(id){
+  var c = DB.consultations.filter(function(x){ return x.id===id; })[0];
+  if(!c) return;
+  var p = DB.patients.filter(function(x){ return x.id===c.patientId; })[0];
+  var age = (p && p.dateNaissance) ? Math.floor((Date.now()-new Date(p.dateNaissance))/3.15576e10) : null;
+  var html =
+    '<div class="doc-header"><div><h1>' + esc(clinicName) + '</h1><div style="font-size:12px;color:#555;">Compte-rendu de consultation</div></div>' +
+    '<div class="doc-meta">' + fmtDateTime(c.date) + '<br>Dossier ' + esc(p?p.numero:'') + '</div></div>' +
+    '<div><b>Patient :</b> ' + esc(c.patientNom) + (age!==null?(' · '+age+' ans'):'') + (p&&p.telephone?(' · '+esc(p.telephone)):'') + '</div>' +
+    (p&&p.allergies ? '<div><b>Allergies :</b> '+esc(p.allergies)+'</div>' : '') +
+    '<div class="section-title">Motif</div><div>' + esc(c.motif||'—') + '</div>' +
+    (c.histoire ? '<div class="section-title">Histoire de la maladie</div><div>'+esc(c.histoire)+'</div>' : '') +
+    (c.examenClinique ? '<div class="section-title">Examen clinique</div><div>'+esc(c.examenClinique)+'</div>' : '') +
+    '<div class="section-title">Diagnostic</div><div>' + esc(c.diagnostic||'—') + '</div>' +
+    (c.examensDemandes ? '<div class="section-title">Examens complémentaires demandés</div><div>'+esc(c.examensDemandes)+'</div>' : '') +
+    (c.prescription && c.prescription.length ?
+      '<div class="section-title">Ordonnance</div><table><thead><tr><th>Médicament</th><th>Dosage</th><th>Posologie</th><th>Durée</th><th>Qté</th></tr></thead><tbody>' +
+      c.prescription.map(function(l){ return '<tr><td>'+esc(l.nom)+'</td><td>'+esc(l.dosage)+'</td><td>'+esc(l.posologie)+'</td><td>'+esc(l.duree)+'</td><td>'+l.quantite+'</td></tr>'; }).join('') +
+      '</tbody></table>' : '') +
+    (c.conseils ? '<div class="section-title">Conseils</div><div>'+esc(c.conseils)+'</div>' : '') +
+    (c.prochainRdv ? '<div class="section-title">Prochain rendez-vous</div><div>'+esc(c.prochainRdv)+'</div>' : '') +
+    '<div class="sign-row"><div>Fait le ' + fmtDateTime(c.date) + '</div><div>Signature et cachet</div></div>';
+  openPrintWindow('Consultation — ' + c.patientNom, html);
+}
+function printRecu(id){
+  var v = DB.ventes.filter(function(x){ return x.id===id; })[0];
+  if(!v) return;
+  var html =
+    '<div class="doc-header"><div><h1>' + esc(clinicName) + '</h1><div style="font-size:12px;color:#555;">Reçu de vente — Pharmacie</div></div>' +
+    '<div class="doc-meta">' + fmtDateTime(v.date) + '</div></div>' +
+    '<div><b>Client :</b> ' + esc(v.patientNom) + '</div>' +
+    '<table><thead><tr><th>Médicament</th><th>Qté</th><th>Prix unitaire</th><th>Total</th></tr></thead><tbody>' +
+    v.items.map(function(i){ return '<tr><td>'+esc(i.nom)+'</td><td>'+i.quantite+'</td><td>'+money(i.prixUnitaire)+'</td><td>'+money(i.total)+'</td></tr>'; }).join('') +
+    '<tr class="total-row"><td colspan="3">Total</td><td>'+money(v.total)+'</td></tr>' +
+    '<tr><td colspan="3">Montant payé</td><td>'+money(v.montantPaye)+'</td></tr>' +
+    (v.reste>0 ? '<tr><td colspan="3">Reste à crédit</td><td>'+money(v.reste)+'</td></tr>' : '') +
+    '</tbody></table>' +
+    '<div class="sign-row"><div>Merci de votre confiance</div><div>Cachet</div></div>';
+  openPrintWindow('Reçu — ' + v.patientNom, html);
+}
+
 /* ---------- Écran de configuration (première utilisation) ---------- */
 function renderSetupScreen(){
   document.getElementById('app').innerHTML =
@@ -230,9 +294,10 @@ function saveFirebaseUrl(){
   boot();
 }
 function openSettings(){
-  openModal('Paramètres de synchronisation',
+  openModal('Paramètres',
+    '<label class="block">Nom de la clinique <span class="muted" style="font-weight:400;">(affiché sur les impressions)</span><input id="setupClinicName" value="' + esc(clinicName) + '"></label>' +
     '<label class="block">URL de la base de données Firebase<input id="setupUrl2" value="' + esc(firebaseUrl||'') + '"></label>' +
-    '<div class="muted small">Modifie ceci uniquement si tu changes de base de données. Tous les appareils de la clinique doivent utiliser la même URL.</div>',
+    '<div class="muted small">Modifie l\'URL uniquement si tu changes de base de données. Tous les appareils de la clinique doivent utiliser la même URL.</div>',
     '<button class="btn btn-ghost" onclick="closeModal()">Annuler</button>' +
     '<button class="btn btn-primary" onclick="saveSettingsUrl()">Enregistrer</button>'
   );
@@ -240,13 +305,17 @@ function openSettings(){
 function saveSettingsUrl(){
   var u = val('setupUrl2');
   if(!u || u.indexOf('http')!==0){ alert('URL invalide.'); return; }
+  var nom = val('setupClinicName') || 'Clinique';
   localStorage.setItem(FIREBASE_URL_KEY, u);
+  localStorage.setItem(CLINIC_NAME_KEY, nom);
   firebaseUrl = u;
+  clinicName = nom;
   closeModal();
   manualRefresh();
 }
 function boot(){
   loadCache();
+  clinicName = localStorage.getItem(CLINIC_NAME_KEY) || 'Clinique';
   if(!firebaseUrl){ renderSetupScreen(); return; }
   render();
   fetchRemote().then(function(){ render(); });
@@ -558,11 +627,12 @@ function renderConsultations(){
     '</div>' +
     '<div class="card card-flat">' +
       (list.length===0 ? emptyState('Aucune consultation.') :
-        '<table class="table"><thead><tr><th>Heure</th><th>Patient</th><th>Motif</th><th>Diagnostic</th><th>Pharmacie</th><th>Solde</th></tr></thead><tbody>' +
+        '<table class="table"><thead><tr><th>Heure</th><th>Patient</th><th>Motif</th><th>Diagnostic</th><th>Pharmacie</th><th>Solde</th><th></th></tr></thead><tbody>' +
         list.map(function(c){
           return '<tr><td class="mono">' + fmtDateTime(c.date) + '</td><td>' + esc(c.patientNom) + '</td><td>' + esc(c.motif||'—') + '</td>' +
             '<td>' + esc(c.diagnostic||'—') + '</td><td>' + pharmBadge(c.pharmacieStatut) + '</td>' +
-            '<td>' + (c.soldeConsultation>0 ? badge('danger',money(c.soldeConsultation)) : badge('success','Soldé')) + '</td></tr>';
+            '<td>' + (c.soldeConsultation>0 ? badge('danger',money(c.soldeConsultation)) : badge('success','Soldé')) + '</td>' +
+            '<td><button class="btn-tiny" onclick="printConsultation(\'' + c.id + '\')">🖨 Imprimer</button></td></tr>';
         }).join('') + '</tbody></table>'
       ) +
     '</div>'
@@ -786,12 +856,13 @@ function renderVente(){
     '</div>' +
     '<div class="card card-flat"><div class="section-head-static">🛒 Ventes récentes</div>' +
       (DB.ventes.length===0 ? emptyState('Aucune vente enregistrée.') :
-        '<table class="table"><thead><tr><th>Date</th><th>Client</th><th>Articles</th><th>Total</th><th>Statut</th></tr></thead><tbody>' +
+        '<table class="table"><thead><tr><th>Date</th><th>Client</th><th>Articles</th><th>Total</th><th>Statut</th><th></th></tr></thead><tbody>' +
         DB.ventes.slice(0,12).map(function(v){
           return '<tr><td class="mono">' + fmtDateTime(v.date) + '</td><td>' + esc(v.patientNom) + '</td>' +
             '<td>' + v.items.map(function(i){return esc(i.nom);}).join(', ') + '</td>' +
             '<td class="mono">' + money(v.total) + '</td>' +
-            '<td>' + (v.reste>0 ? badge('danger','Crédit '+money(v.reste)) : badge('success','Réglé')) + '</td></tr>';
+            '<td>' + (v.reste>0 ? badge('danger','Crédit '+money(v.reste)) : badge('success','Réglé')) + '</td>' +
+            '<td><button class="btn-tiny" onclick="printRecu(\'' + v.id + '\')">🖨 Reçu</button></td></tr>';
         }).join('') + '</tbody></table>'
       ) +
     '</div>'
